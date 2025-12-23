@@ -18,7 +18,7 @@
 |3주차|다중접속, 사용자기록 로그 분석, AI 추천기능 추가|
 
 ### 1주차 진행상황 기록
-#### 1일차(12/24)
+#### 1일차(12/23)
 - 프론트 코드 페이지별 분석
 
 |페이지|프론트코드|백엔드코드|수정사항|
@@ -32,7 +32,7 @@
 - 백엔드 코드 기능별 분석(컨트롤러, 서비스, REPO, CONFIG)
   
 ```
-src/main/java/pnu
+project0819/src/main/java/edu/pnu
 ├── 📁 config
 │   ├── CustomAuthenticationSuccessHandler.java  # OAuth2 로그인 성공 후 처리 로직
 │   ├── CustomOAuth2UserService.java           # 구글 로그인 정보를 Member 테이블 규격에 맞게 변환
@@ -77,7 +77,10 @@ src/main/java/pnu
     ├── FavoriteService.java                   # 즐겨찾기 추가/삭제 로직
     └── LoginService.java                      # 비밀번호 암호화(BCrypt) 및 로그인 검증
 ```
-
+#### 2일차(12/24)
+- 프론트코드 읽기(api호출 + 유효성 검사, 찜하기, 카카오맵연동, 건강백과사전 api, 검색기능, 미리보기기능, 페이지기능, 날짜내림차순 정렬)
+- 백엔드코드 읽기(컨트롤러, 서비스 개념 + api호출)
+  
 ### 2주차 진행상황 기록
 
 ### 3주차 진행상황 기록

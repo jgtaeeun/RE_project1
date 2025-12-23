@@ -14,7 +14,7 @@
 |주차|계획|
 |:--:|:--:|
 |1주차|프론트 코드 페이지별 분석(홈화면, 마이페이지, 병원검색, 건강정보) <br> 백엔드 코드 기능별 분석(컨트롤러, 서비스, REPO, CONFIG) <br>  백엔드 코드 수정 (토큰로그인/OAUTH로그인/마이페이지/데이터베이스)|
-|2주차|기능 추가(게시판글에서는 댓댓글기능, 페이지이동기능/건강정보 기능에서는 검색기능, 알고리즘 추천, 음성검색기능, 동영상첨부나 링크 연결) <br>  DB 기능 추가(로그인 시 개인정보 보안, 효율을 위한 테이블 연결, 외래키, OAUTH로그인 시 보안측면 고려)|
+|2주차|기능 추가(게시판글에서는 댓댓글기능, 페이지이동기능/건강정보 기능에서는 알고리즘 추천, 음성검색기능, 동영상첨부나 링크 연결) <br>  DB 기능 추가(로그인 시 개인정보 보안, 효율을 위한 테이블 연결, 외래키, OAUTH로그인 시 보안측면 고려)|
 |3주차|다중접속, 사용자기록 로그 분석, AI 추천기능 추가|
 
 ### 1주차 진행상황 기록
@@ -27,7 +27,56 @@
 |마이페이지|찜하기|찜하기|테이블 정규화|
 |병원검색|조건입력, 카카오맵연동|조건출력|데이터공백확인|
 |건강백과사전|api데이터 활용|||
-|게시판/qna|제목,작성자,내용 카테고리별 검색기능, 미리보기기능,  페이징기능, 날짜내림차순정렬, 로그인유무|게시글 입출력||
+|게시판/qna|제목,작성자,내용 카테고리별 검색기능, 미리보기기능,  페이징기능, 날짜내림차순정렬|게시글 입출력,로그인유무||
+
+- 백엔드 코드 기능별 분석(컨트롤러, 서비스, REPO, CONFIG)
+  
+```
+src/main/java/pnu
+├── 📁 config
+│   ├── CustomAuthenticationSuccessHandler.java  # OAuth2 로그인 성공 후 처리 로직
+│   ├── CustomOAuth2UserService.java           # 구글 로그인 정보를 Member 테이블 규격에 맞게 변환
+│   ├── JpaConfig.java                         # JpaTransactionManager 설정
+│   └── SecurityConfig.java                    # CORS, 로그인/로그아웃, 세션 및 요청 권한 설정
+├── 📁 controller
+│   ├── BoardController.java                   # 게시글 및 댓글 CRUD API
+│   ├── QnaController.java                     # Q&A 게시글 및 댓글 CRUD API
+│   ├── CardDetailController.java              # 병원 조건 검색 및 요약 정보 리스트 조회
+│   ├── FavoriteController.java                # 병원 찜하기/취소 및 즐겨찾기 목록 조회
+│   ├── InformationController.java             # 지역·인력 조건 기반 병원 상세 검색
+│   ├── LoginController.java                   # 일반/구글 로그인 처리 및 쿠키 관리
+│   ├── MemberController.java                  # 회원가입 및 중복 회원 검증
+│   └── SessionController.java                 # 로그인 상태 유지 체크 및 마이페이지 데이터
+├── 📁 domain
+│   ├── Board.java / BoardRe.java              # 게시판 및 댓글 엔티티
+│   ├── Qna.java / QnaRe.java                  # Q&A 및 댓글 엔티티
+│   ├── Sidosigungu.java                       # 시도/시군구 행정구역 정보
+│   ├── Doctor.java / Person.java              # 병원 인력 및 관련 정보
+│   ├── Information.java                       # 병원 기본 정보
+│   ├── Level.java                             # 병원 등급
+│   ├── Member.java                            # 회원 정보
+│   ├── Favorites.java                         # 찜한 병원 (즐겨찾기)
+│   └── LoginRequest.java                      # 로그인 요청 DTO
+├── 📁 persistence
+│   ├── BoardRepository.java                   # 게시판 데이터 접근
+│   ├── BoardReRepository.java                 # 게시판 댓글 데이터 접근
+│   ├── QnaRepository.java                     # Q&A 데이터 접근
+│   ├── QnaReRepository.java                   # Q&A 댓글 데이터 접근
+│   ├── SidosigunguRepository.java             # 행정구역 데이터 조회
+│   ├── DoctorRepository.java                  # 의료진 데이터 조회
+│   ├── PersonRepository.java                  # 인력 관련 데이터 조회
+│   ├── InformationRepository.java             # 병원 정보 데이터 조회
+│   ├── LevelRepository.java                   # 등급 데이터 조회
+│   ├── MemberRepository.java                  # 회원 데이터 처리
+│   └── FavoritesRepository.java               # 즐겨찾기 데이터 처리
+└── 📁 service
+    ├── BoardService.java                      # 게시판 비즈니스 로직
+    ├── QnaService.java                        # Q&A 비즈니스 로직
+    ├── InformationService.java                # 병원 정보 검색 및 필터링 로직
+    ├── MemberService.java                     # 회원 가입 및 정보 관리
+    ├── FavoriteService.java                   # 즐겨찾기 추가/삭제 로직
+    └── LoginService.java                      # 비밀번호 암호화(BCrypt) 및 로그인 검증
+```
 
 ### 2주차 진행상황 기록
 

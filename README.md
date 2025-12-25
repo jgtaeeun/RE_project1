@@ -77,9 +77,81 @@ project0819/src/main/java/edu/pnu
     ├── FavoriteService.java                   # 즐겨찾기 추가/삭제 로직
     └── LoginService.java                      # 비밀번호 암호화(BCrypt) 및 로그인 검증
 ```
-#### 2일차(12/24)
+#### 2일차(12/25)
+
+- 계층형 아키텍처
+  
+|계층|역할|
+|:--:|:--:|
+|Domain |데이터베이스의 테이블과 1:1로 매핑되는 객체(Entity)|
+|Repository|DB에 데이터를 저장, 조회, 수정, 삭제(CRUD)하는 작업을 수행합니다. <br> 스프링 데이터 JPA를 사용하면 인터페이스만 선언해도 구현체가 자동으로 생성됩니다. <br> 서비스(Service) 계층에서 요청을 받아 DB와 통신합니다.|
+|Service|여러 레포지토리를 조합하거나, 복잡한 계산, 트랜잭션 처리를 담당합니다.<br>컨트롤러로부터 요청을 받아 비즈니스 로직을 수행한 후, 결과를 다시 컨트롤러에 넘겨줍니다.|
+|Controller|사용자의 요청(HTTP Request)을 가장 먼저 받는 관문입니다.<br>클라이언트 ↔ 컨트롤러 ↔ 서비스.|
+|Config (설정)|외부 라이브러리 설정<br>보안 설정(Spring Security)<br> CORS 설정<br>특정 빈(Bean)을 수동으로 등록할 때|
+
+- 주요 계층별로 반드시 알아야 할 핵심 어노테이션
+  1. Controller
+    - @CrossOrigin(origins = "http://localhost:3000"): 웹 브라우저는 보안상의 이유로, 다른 도메인으로 요청을 보내는 것을 기본적으로 차단합니다. 
+    - @Controller: 해당 클래스가 Spring MVC 컨트롤러임을 나타냅니다. (View를 반환할 때 사용)
+    - @RestController: @Controller + @ResponseBody의 조합입니다. 주로 JSON 형태로 데이터를 반환하는 REST API를 만들 때 사용합니다.
+    - @RequiredArgsConstructor: 생성자 주입(Constructor Injection) 자동화
+    - @RequestMapping: 특정 URL 패턴을 클래스나 메서드에 매핑합니다.
+    - @GetMapping, @PostMapping, @PutMapping, @DeleteMapping: HTTP Method(GET, POST, PUT, DELETE)에 맞게 요청을 처리합니다.
+    - @RequestBody: 클라이언트가 보낸 JSON 데이터를 객체로 변환하여 받을 때 사용합니다.
+    
+  2. Service
+    - @Service: 해당 클래스가 서비스 계층임을 명시하고, 스프링 빈(Bean)으로 등록합니다.
+    - @Transactional: 매우 중요합니다. 메서드 내의 작업들을 하나의 트랜잭션으로 묶어줍니다. 작업 중 오류가 발생하면 자동으로 롤백(Rollback)을 수행합니다.
+
+  3. Repository 
+    - @Repository: 해당 클래스가 데이터 저장소에 접근하는 클래스임을 명시합니다. DB 예외를 스프링의 예외 계층으로 변환해주는 역할도 합니다.
+
+  4. Domain 
+    - @Entity: 이 클래스가 DB 테이블과 매핑될 클래스임을 나타냅니다. (JPA 관리 대상)
+    - @Id: 테이블의 기본키(PK)를 지정합니다.
+    - @GeneratedValue: 기본키 생성 전략을 설정합니다. (예: IDENTITY는 DB에 생성을 위임)
+    - @Table, @Column: 테이블이나 컬럼의 이름을 실제 DB와 다르게 설정하고 싶을 때 사용합니다.
+    - @Getter / @Setter: Domain(Entity) 클래스에서 필드에 대한 Getter/Setter 메서드를 생성해줍니다.
+    - @NoArgsConstructor: 파라미터가 없는 기본 생성자를 만들어줍니다. (JPA Entity에는 필수입니다.)
+    - @AllArgsConstructor: 모든 필드를 파라미터로 받는 생성자를 만들어줍니다.
+      
+  5. Config
+    - @Configuration: 해당 클래스가 스프링의 설정 정보임을 나타냅니다.
+    - @Bean: 메서드가 반환하는 객체를 스프링 컨테이너에 빈으로 등록합니다. 주로 외부 라이브러리 객체를 등록할 때 씁니다.
+
+- 보충 설명
+  1. JpaRepository
+     - 클래스가 아니라 인터페이스입니다. JpaRepository<Entity클래스, ID타입>을 상속받기만 하면 실체(구현체)는 스프링이 알아서 만들어줍니다.
+     - INSERT, UPDATE, SELECT, DELETE 같은 뻔한 SQL을 직접 작성할 필요가 없습니다.|
+
+    - Repository 
+    ```
+    ```
+
+    - Service
+    ```
+    ```
+  2. @Bean
+    - 보통 SecurityFilterChain이나 PasswordEncoder 같은 객체를 만들 때 사용합니다.
+    - 스프링이 만들고 관리하는 객체
+    - 스프링에게 이 객체의 생명주기(생성, 관리, 소멸)를 네가 담당해줘라고 권한을 넘기는 것이라고 이해하시면 됩니다.
+    ```
+
+    ```
+       
+#### 3일차(12/26)
+
 - 프론트코드 읽기(api호출 + 유효성 검사, 찜하기, 카카오맵연동, 건강백과사전 api, 검색기능, 미리보기기능, 페이지기능, 날짜내림차순 정렬)
-- 백엔드코드 읽기(컨트롤러, 서비스 개념 + api호출 + 병원등급정보 level어디서 쓰지?)
+- 백엔드코드 읽기(api호출 + 병원등급정보 level어디서 쓰지?)
+
+
+
+
+
+
+
+
+
   
 ### 2주차 진행상황 기록
 

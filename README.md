@@ -195,9 +195,9 @@ project0819/src/main/java/edu/pnu
 - **개선사항**
   - 컨트롤러 계층에서 @CrossOrigin(origins = "http://localhost:3000") 대신에 WebMvcConfigurer를 이용해 Config 계층에서 한 번에 설정
   - 컨트롤러 계층에서 @RequiredArgsConstructor 태그 있을 경우 ,  private final BoardService boardService와 같이 final 처리로 생성자 생략 
-  - 로그인 관련 추가 - oauth로그인 기능 코드 /유효성 검사 코드
+  - 로그인 관련 추가 -   - 토큰방식 로그인 처리방식 /oauth로그인 기능 코드 /유효성 검사 코드
     
-#### 3일차(12/26)
+#### 3일차(12/29)
 - 프론트코드(LoginForm.js)
   1. 유효성검사
     - 프론트엔드 검사 (UX 향상용):
@@ -234,13 +234,20 @@ project0819/src/main/java/edu/pnu
     ```
   3. **개선사항**
     - 유효성검사 조건
+    - 토큰방식 로그인 처리방식 - left .js . LoginForm.js , SignUp.js
     - 비동기 에러 상태 동기화: handleSubmit에서 validateField를 호출할 때, setErrors는 비동기로 작동하므로 if (Object.values(errors).some(...)) 체크 시점에서 최신 에러 상태가 반영되지 않을 수 있습니다. 제출 시에는 별도의 로컬 변수로 검사하는 것이 더 안전합니다.
     - 소셜 로그인 기능: 현재 구글, 네이버 등 버튼은 UI만 있고 기능은 없습니다. 나중에 OAuth 기능을 추가하실 계획이라면 해당 버튼에 onClick 핸들러를 연결하시면 됩니다.
     - Loading 상태: 서버 응답을 기다리는 동안 버튼을 비활성화하거나 로딩 스피너를 보여주면 사용자 경험(UX)이 더 좋아집니다.
 
 
+#### 4일차(12/30)
+- 프론트코드 읽기
+  - 카드, 병원정보, MyPage- 카카오맵연동,찜하기 
+  - health, News -  건강백과사전 api
+  - Community -검색기능,페이지기능,날짜내림차순 정렬
+  - QNA - 미리보기기능
 
-- 프론트코드 읽기(api호출 + 유효성 검사, 찜하기, 카카오맵연동, 건강백과사전 api, 검색기능, 미리보기기능, 페이지기능, 날짜내림차순 정렬)
+
 - 백엔드코드 읽기(api호출 + 병원등급정보 level어디서 쓰지?)
 
 

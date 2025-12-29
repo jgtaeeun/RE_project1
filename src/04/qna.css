@@ -1,0 +1,100 @@
+/* 테이블 스타일 */
+table {
+  width: 100%;
+  border-collapse: collapse; /* 셀 간의 경계를 붙여줍니다 */
+  margin-top: 3rem;
+  table-layout: fixed; /* 열 너비를 고정합니다 */
+  border-left: none; /* 왼쪽 경계선 제거 */
+  border-right: none; /* 오른쪽 경계선 제거 */
+}
+
+/* 헤더 스타일 */
+thead {
+  background-color: #f2f2f2; /* 헤더 배경색 */
+}
+
+thead th {
+  border-bottom: 2px solid #ddd; /* 헤더 아래에만 선 추가 */
+  padding: 0.75rem; /* 패딩 조정 */
+  text-align: center;
+  font-weight: bold;
+}
+
+/* 본문 스타일 */
+tbody tr {
+  border-bottom: 1px solid #ddd; /* 각 행의 아래쪽에 선 추가 */
+}
+
+/* 기본 셀 스타일 */
+tbody td {
+  padding: 0.75rem; /* 셀 패딩 */
+  text-align: left; /* 텍스트 왼쪽 정렬 */
+  border-bottom: 1px solid #ddd; /* 각 셀의 하단에 가로줄 추가 */
+  border-right: none; /* 셀의 오른쪽 경계선 제거 */
+  border-left: none; /* 셀의 왼쪽 경계선 제거 */
+}
+
+/* 호버 스타일 - 전체 행에 적용 */
+tbody tr:hover {
+  background-color: #f9f9f9; /* 호버 시 배경색 변경 */
+}
+
+/* 각 열 너비 설정 */
+th:nth-child(1), td:nth-child(1) {
+  width: 1%;
+}
+
+th:nth-child(2), td:nth-child(2) {
+  width: 56%;
+}
+
+th:nth-child(3), td:nth-child(3) {
+  width: 20%;
+}
+
+th:nth-child(4), td:nth-child(4) {
+  width: 23%;
+}
+
+.reply-row {
+  display: flex;
+  align-items: center;
+  background-color: #f1f5f9; /* Light gray background */
+  padding: 0.5rem 1rem;
+}
+
+.reply-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.reply-text {
+  display: flex;
+  align-items: center;
+}
+
+.reply-date {
+  margin-left: auto; /* Push date to the far right */
+  font-size: 0.8rem;
+  color: #6b7280; /* Gray color for the date */
+}
+
+/* 글쓰기 버튼 스타일 */
+.qwrite-button {
+  font-size: medium;
+  text-decoration: none;
+  padding: 0.5rem;
+  width: 10%;
+  cursor: pointer;
+  background-color: #ababab;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-weight: bold;
+  color: white;
+  text-align: center;
+}
+
+.qwrite-button:hover {
+  background-color: #939191;
+  color: white;
+}

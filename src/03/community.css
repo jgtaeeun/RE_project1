@@ -1,0 +1,81 @@
+/* 테이블 스타일 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 3rem;
+  table-layout: auto; /* 열 너비를 콘텐츠에 맞춤 */
+}
+
+/* 헤더 스타일 */
+thead {
+  background-color: #f2f2f2; 
+}
+
+thead th {
+  border-bottom: 2px solid #ddd;
+  padding: 0.75rem;
+  text-align: center;
+  font-weight: bold;
+  min-width: 30px; /* 열의 최소 너비를 설정 */
+
+}
+
+/* 본문 스타일 */
+tbody tr {
+  border-bottom: 1px solid #ddd; /* 각 행의 아래쪽에 선 추가 */
+}
+
+/* 기본 셀 스타일 */
+tbody td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #ddd;
+  min-width: 100px; /* 열의 최소 너비를 설정 */
+  /* 추가적인 속성 확인 */
+  transform: none; /* 변형이 없는지 확인 */
+  display: table-cell; /* 기본 셀 디스플레이로 설정 */
+  writing-mode: horizontal-tb; /* 텍스트 방향을 수평으로 설정 */
+}
+
+/* 호버 스타일 - 전체 행에 적용 */
+tbody tr:hover {
+  background-color: #f9f9f9; /* 호버 시 배경색 변경 */
+}
+
+th:nth-child(1), td:nth-child(1) {
+  width: 10%; /* 번호 열의 최소 너비를 조정 */
+}
+
+th:nth-child(2), td:nth-child(2) {
+  width: 49%; /* 제목 열의 최소 너비를 조정 */
+}
+
+th:nth-child(3), td:nth-child(3) {
+  width: 25%; /* 작성자 열의 최소 너비를 조정 */
+}
+
+th:nth-child(4), td:nth-child(4) {
+  width: 25%; /* 작성일 열의 최소 너비를 조정 */
+}
+
+th:nth-child(5), td:nth-child(5) {
+  width: 15%; /* 조회수 열의 최소 너비를 조정 */
+}
+
+/* 글쓰기 버튼 스타일 */
+.cwrite-button {
+  font-size: medium;
+  text-decoration: none;
+  padding: 0.5rem;
+  width: 10%;
+  cursor: pointer;
+  background-color: #ababab;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-weight: bold;
+  color: white;
+  text-align: center;
+}
+
+.cwrite-button:hover {
+  background-color: #939191;
+  color: white;
+}

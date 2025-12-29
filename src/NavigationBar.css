@@ -1,0 +1,89 @@
+/* 네비게이션 바 */
+.nav-list {
+  list-style-type: none; /* 불릿 제거 */
+  padding: 0; 
+  margin: 0; 
+  height: 100%;
+  width: 240px; 
+  background-color: rgb(54, 126, 190);
+  color: white;
+  position: fixed; /* 화면에 고정 */
+  top: 0; /* 상단에 고정 */
+  left: 0; /* 왼쪽에 고정 */
+  display: flex;
+  flex-direction: column; 
+  justify-content: flex-start;
+}
+
+/* 버튼을 고정된 너비로 설정 */
+.buttons {
+  margin-top: auto; /* 버튼을 하단으로 이동 */
+  padding: 2rem; 
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column; 
+  align-items: center;
+}
+
+.left-button {
+  font-size: 0.8rem;
+  color: white !important;
+  cursor: pointer;
+  width: 150px;
+  text-align: center;
+  margin-bottom: 10px;
+  border: 1.5px solid white;
+  padding: 4px !important;
+  border-radius: 7px !important;
+  background-color: transparent !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.left-button:hover {
+  background-color: white !important; 
+  color: rgb(43, 116, 181) !important;
+}
+
+.welcome-message {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #333; /* 원하는 텍스트 색상 */
+}
+
+.nav-list li {
+  font-size: 1.0rem;
+  margin-bottom: 1rem;
+  text-align: left;
+  cursor: pointer;
+  padding: 10px; 
+  display: block; /* 전체 너비 차지 */
+  transition: background-color 0.3s ease, color 0.3s ease;
+  margin-left: 1rem;
+}
+
+/* .nav-list 내의 이미지 스타일 */
+.nav-list div img {
+  width: 100%; 
+  height: auto; 
+  display: block; 
+  margin: 0 auto;
+  padding: 10px;
+  background-color: white;
+  border-radius: 5px; 
+}
+
+/* 필요에 따라 로고에 대한 추가 스타일 */
+.nav-list .logo {
+  margin-top: 3rem;
+  margin-bottom: 3rem;
+  width: 10rem;
+  display: flex;
+  align-items: center;
+  margin-left: 2.5rem;
+}
+
+.nav-list li:hover {
+  background-color: #37668d; /* 하늘색 배경 */
+  font-weight: bold; /* 텍스트 두껍게 */
+}  

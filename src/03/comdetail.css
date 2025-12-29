@@ -1,0 +1,45 @@
+
+  th:nth-child(1), td:nth-child(1) {
+    width: 20%; 
+  }
+  
+  th:nth-child(2), td:nth-child(2) {
+    width: 57%;
+  }
+  
+  th:nth-child(3), td:nth-child(3) {
+    width: 23%;
+  }
+  
+  .cdetail-button {
+    font-size: medium;
+    text-decoration: none;
+    padding: 0.5rem;
+    width: 10%;
+    cursor: pointer;
+    background-color: #ababab;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+  }
+  
+  .cdetail-button:hover {
+    background-color: #939191;
+    color: white;
+  }
+  
+  .reply{
+    background-color: #f2f2f2;
+    text-align: center;
+  }
+
+  .comment-section {
+    margin-bottom: 0.5rem; /* 댓글 입력 영역과 댓글 테이블 간의 간격을 줄임 */
+  }
+
+  .comment-header {
+    margin-bottom: -2rem;
+  }
+
+  

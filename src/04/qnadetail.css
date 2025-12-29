@@ -1,0 +1,35 @@
+
+th:nth-child(1), td:nth-child(1) {
+  width: 20%; 
+}
+
+th:nth-child(2), td:nth-child(2) {
+  width: 57%;
+}
+
+th:nth-child(3), td:nth-child(3) {
+  width: 23%;
+}
+
+.qdetail-button {
+  font-size: medium;
+  text-decoration: none;
+  padding: 0.5rem;
+  width: 10%;
+  cursor: pointer;
+  background-color: #ababab;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-weight: bold;
+  color: white;
+  text-align: center;
+}
+
+.qdetail-button:hover {
+  background-color: #939191;
+  color: white;
+}
+
+.reply{
+  background-color: #f2f2f2;
+  text-align: center;
+}

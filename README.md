@@ -192,7 +192,53 @@ project0819/src/main/java/edu/pnu
     - final이 붙거나 @NonNull이 붙은 필드(변수)들을 파라미터로 받는 생성자를 자동으로 만들어줍니다.
     - @Autowired를 일일이 붙이지 않아도 깔끔하게 의존성 주입이 완료됩니다.
 
+- **개선사항**
+  - 컨트롤러 계층에서 @CrossOrigin(origins = "http://localhost:3000") 대신에 WebMvcConfigurer를 이용해 Config 계층에서 한 번에 설정
+  - 컨트롤러 계층에서 @RequiredArgsConstructor 태그 있을 경우 ,  private final BoardService boardService와 같이 final 처리로 생성자 생략 
+  - 로그인 관련 추가 - oauth로그인 기능 코드 /유효성 검사 코드
+    
 #### 3일차(12/26)
+- 프론트코드(LoginForm.js)
+  1. 유효성검사
+    - 프론트엔드 검사 (UX 향상용):
+      - 사용자가 데이터를 서버로 보내기 전에 즉각적인 피드백을 주기 위해 합니다.
+      - 서버까지 데이터가 갔다 오는 시간을 아껴주어 사용자 경험을 좋게 만듭니다.
+      - 하지만 보안상 취약합니다. (사용자가 브라우저 개발자 도구로 검사 로직을 우회할 수 있기 때문입니다.)
+    - 백엔드 검사 (보안/데이터 무결성용):
+      - 최후의 보루입니다. 프론트엔드에서 우회해서 들어온 잘못된 값이나 악의적인 데이터를 차단합니다.
+      - 백엔드 검사가 없으면 데이터베이스에 쓰레기 데이터가 쌓이거나 보안 사고가 날 수 있습니다.
+
+
+  2. 비밀번호 조건 국룰 조합
+    - 보통 웹사이트들이 까다롭게 구는 이유는 **무차별 대입 공격(Brute Force Attack)**을 방어하기 위해서입니다.
+    - 길이: 최소 8자 이상 (최근엔 10~12자 이상 권장)
+    - 조합: 영문 대문자, 소문자, 숫자, 특수문자 중 3종류 이상 조합
+    - 제한: 아이디와 동일한 비밀번호, 1234 같은 연속 숫자, 생일 등 제외
+    ```js
+    const validateField = (name, value) => {
+    let errorMsg = null;
+  
+    if (name === 'password') {
+      // 8자 이상, 최소 하나의 숫자 및 특수문자 포함 규칙
+      const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+      
+      if (!value) {
+        errorMsg = '비밀번호를 입력하세요.';
+      } else if (!passwordRegex.test(value)) {
+        errorMsg = '비밀번호는 8자 이상이며, 숫자와 특수문자를 포함해야 합니다.';
+      }
+    }
+    
+    setErrors(prevErrors => ({ ...prevErrors, [name]: errorMsg }));
+    };
+    ```
+  3. **개선사항**
+    - 유효성검사 조건
+    - 비동기 에러 상태 동기화: handleSubmit에서 validateField를 호출할 때, setErrors는 비동기로 작동하므로 if (Object.values(errors).some(...)) 체크 시점에서 최신 에러 상태가 반영되지 않을 수 있습니다. 제출 시에는 별도의 로컬 변수로 검사하는 것이 더 안전합니다.
+    - 소셜 로그인 기능: 현재 구글, 네이버 등 버튼은 UI만 있고 기능은 없습니다. 나중에 OAuth 기능을 추가하실 계획이라면 해당 버튼에 onClick 핸들러를 연결하시면 됩니다.
+    - Loading 상태: 서버 응답을 기다리는 동안 버튼을 비활성화하거나 로딩 스피너를 보여주면 사용자 경험(UX)이 더 좋아집니다.
+
+
 
 - 프론트코드 읽기(api호출 + 유효성 검사, 찜하기, 카카오맵연동, 건강백과사전 api, 검색기능, 미리보기기능, 페이지기능, 날짜내림차순 정렬)
 - 백엔드코드 읽기(api호출 + 병원등급정보 level어디서 쓰지?)
@@ -207,12 +253,6 @@ project0819/src/main/java/edu/pnu
 
   
 ### 2주차 진행상황 기록
-#### 1일차
-- 코드수정
 
-  |코드|수정 이유|
-  |:--:|:--:|
-  |@CrossOrigin(origins = "http://localhost:3000") |프로젝트 규모가 커지면 매번 붙이기 번거로우므로 WebMvcConfigurer를 이용해 Config 계층에서 한 번에 설정하기도 합니다.|
-  |@RequiredArgsConstructor <br> public class BoardController { <br> private final BoardService boardService; <br> }|순환 참조 방지|
 
 ### 3주차 진행상황 기록

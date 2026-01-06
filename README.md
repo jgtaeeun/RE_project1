@@ -308,6 +308,130 @@ project0819/src/main/java/edu/pnu
     - API 호출 병렬화: fetchData 함수 안에서 await checkSession(), await fetch('...mypage'), await fetchFavorites()가 순차적으로 실행되고 있습니다. 세션 확인 후 데이터 로딩은 Promise.all을 사용하여 동시에 처리하면 페이지 로딩 속도가 빨라집니다.
 
 2. 백엔드 코드 개선사항
+- 백엔드 코드 리뷰 주요 포인트
+  - RESTful API 설계: URL 경로(@RequestMapping)와 HTTP Method(GET, POST, PUT, DELETE)가 용도에 맞게 적절히 사용되었는지 확인합니다.
+  - DTO 활용: 엔티티(Entity)를 외부로 직접 노출하지 않고, 요청과 응답에 전용 DTO를 사용하고 있는지 체크합니다.
+  - 예외 처리 (Global Exception Handling): 비즈니스 로직 중 발생하는 에러를 어떻게 처리하고 클라이언트에게 어떤 상태 코드(ResponseEntity)를 주는지 확인합니다.
+  - 트랜잭션 관리: @Transactional이 서비스 계층에서 데이터 일관성을 위해 적절히 배치되었는지 확인합니다.
+  - 보안 및 인증: 세션/쿠키 처리나 관리자 권한(admin) 체크 로직이 서비스 레이어에서 안전하게 검증되는지 봅니다.
+
+- 공통
+  - DTO 적용 (Entity 노출 방지)
+  ```java
+  // BoardResponseDto.java
+  @Getter
+  @AllArgsConstructor
+  public class BoardResponseDto {
+      private Long boardId;
+      private String title;
+      private String content;
+      private String writer; // Member 엔티티 대신 이름만 추출
+      private Long cnt;
+      private Date createDate;
+  
+      // Entity를 DTO로 변환하는 생성자
+      public BoardResponseDto(Board board) {
+          this.boardId = board.getBoardId();
+          this.title = board.getTitle();
+          this.content = board.getContent();
+          this.writer = board.getMember().getUsername();
+          this.cnt = board.getCnt();
+          this.createDate = board.getCreateDate();
+      }
+  }
+  ```
+  - 서비스 계층 개선 (Optional & Dirty Checking)
+    - throws SQLException을 제거하고 더 현대적인 방식으로 수정했습니다.
+  ```java
+  @Service
+  @RequiredArgsConstructor // Autowired 대신 생성자 주입 권장
+  public class BoardService {
+  
+      private final BoardRepository boardRepo;
+  
+      @Transactional(readOnly = true) // 단순 조회 시 성능 향상
+      public Board getBoard(Long id) {
+          return boardRepo.findById(id)
+              .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 없습니다. id=" + id));
+      }
+  
+      @Transactional
+      public void updateBoard(Member member, Board boardDto, Long id) {
+          // 1. 조회 (영속화)
+          Board target = boardRepo.findById(id)
+              .orElseThrow(() -> new IllegalArgumentException("게시글이 없습니다."));
+  
+          // 2. 권한 확인
+          if (!target.getMember().getUsername().equals(member.getUsername())) {
+              throw new RuntimeException("수정 권한이 없습니다.");
+          }
+  
+          // 3. 필드 업데이트 (Dirty Checking 발생)
+          if (boardDto.getTitle() != null) target.setTitle(boardDto.getTitle());
+          if (boardDto.getContent() != null) target.setContent(boardDto.getContent());
+          
+          // 별도의 save() 호출이 없어도 트랜잭션 종료 시 자동 업데이트됩니다.
+      }
+  }
+  ```
+  - 컨트롤러 개선 (ResponseEntity 활용)
+    - 로직을 서비스로 밀어넣고 컨트롤러는 응답 방식에만 집중합니다.
+  ```Java
+  @GetMapping("/{id}")
+  public ResponseEntity<BoardResponseDto> getBoard(@PathVariable Long id) {
+    // 1. 서비스에서 데이터 가져오기 (예외는 GlobalExceptionHandler에서 처리하면 더 깔끔합니다)
+    Board board = boardService.getBoard(id);
+    
+    // 2. 조회수 증가는 서비스 내 별도 메서드로 처리하는 것을 추천
+    boardService.increaseViewCount(id); 
+    
+    // 3. DTO로 변환하여 반환
+    return ResponseEntity.ok(new BoardResponseDto(board));
+  }
+  ```
+- 왜 이렇게 바꿀까요?
+  - 보안: Member 엔티티 안에 들어있는 비밀번호 등이 API 응답에 섞여 나가는 것을 원천 봉쇄합니다.
+  - 성능: readOnly = true를 통해 JPA의 스냅샷 관리를 최적화할 수 있습니다.
+  - 가독성: updateBoard의 복잡한 if-else가 사라지고 비즈니스 흐름이 명확해집니다.
+- 게시판
+  - Optional 안전하게 처리하기 (.get() 사용 지양)
+    - 현재 서비스 코드에서 boardRepo.findById(id).get()을 사용하고 계신데, 만약 데이터베이스에 해당 ID가 없으면 NoSuchElementException이 발생하며 서버가 500 에러를 뱉게 됩니다.
+    - 개선: orElseThrow를 사용하여 데이터가 없을 때 명확한 예외를 던지거나 처리해야 합니다.
+    ```Java
+    // 개선 전
+    Board board = boardRepo.findById(id).get();
+    // 개선 후
+    Board board = boardRepo.findById(id)
+      .orElseThrow(() -> new RuntimeException("해당 게시글을 찾을 수 없습니다."));
+    ```
+  - 조회수 증가 로직 최적화
+    - 현재 Controller에서 게시글을 가져온 뒤 다시 setCnt를 하고 updateBoard를 호출하고 있습니다. 이는 한 번의 요청에 SELECT와 UPDATE 쿼리가 따로 발생하며, 로직이 컨트롤러에 분산되어 있습니다.
+    - 개선: 서비스 계층에 @Transactional을 건 increaseViewCount 같은 메서드를 만들어 비즈니스 로직을 캡슐화하세요. (참고: 벌크 연산 @Query("update Board b set b.cnt = b.cnt + 1 where b.id = :id")을 사용하면 성능이 더 좋아집니다.)
+
+  - 더티 체킹(Dirty Checking) 활용
+    - JPA는 영속성 컨텍스트 덕분에 엔티티의 필드 값만 바꿔도 트랜잭션 종료 시점에 변경 사항을 감지해서 UPDATE 쿼리를 날립니다. 현재 updateBoard 메서드에서 여러 조건문(if-else if)과 save()를 반복하는 코드를 단순화할 수 있습니다.
+    - 개선: 엔티티 내부에 update 메서드를 만들면 코드가 훨씬 읽기 쉬워집니다.
+    ```Java
+    // Board 서비스 내부
+    @Transactional
+    public void updateBoard(Member member, Board board, Long id) throws SQLException {
+        Board target = boardRepo.findById(id).orElseThrow(...);
+        
+        if (target.getMember().getUsername().equals(member.getUsername())) {
+            // null이 아닐 때만 업데이트 (Dirty Checking)
+            if (board.getTitle() != null) target.setTitle(board.getTitle());
+            if (board.getContent() != null) target.setContent(board.getContent());
+            // boardRepo.save(target); 호출 필요 없음 (트랜잭션 종료 시 자동 반영)
+        }
+    }
+    ```
+  
+  - 추가적인 팁
+    - SQLException 제거: JPA 환경에서는 대부분 RuntimeException 계열의 예외가 발생하므로 메서드마다 throws SQLException을 붙이지 않아도 자동으로 Spring이 예외 변환을 해줍니다. 코드가 훨씬 간결해집니다.
+    - 삭제 로직: deleteByBoardId(id) 같은 메서드를 호출할 때, Board와 BoardRe가 Cascade(영속성 전이) 관계라면 boardRepo.delete(board)만 호출해도 댓글까지 한꺼번에 지울 수 있습니다.
+- 큐엔에이
+- 마이페이지
+- 병원검색
 - 로그인
   - 토큰방식
   - 백엔드 단독 회원정보 중복확인

@@ -436,9 +436,44 @@ project0819/src/main/java/edu/pnu
   |역할|화면(UI)과 통신할 때 데이터 담는 용도|실제 DB 테이블과 매핑되는 용도|
   |저장/수정|사용자 입력값을 받아올 때만 사용|실제 DB에 반영할 때 필수 사용|
   |가공|화면에 맞게 데이터를 깎고 다듬음|DB 제약조건(ID, 날짜 등)을 포함함|
+
+  ```java
+  //MemberRequestDTO (회원가입 입력용)
+  @Data
+  public class MemberRequestDTO {
+      private String username;
+      private String password; // 사용자가 입력한 평문 비밀번호
+      private String email;
+  }
+  ```
+
+  
+  ```java
+  //Member Entity (DB 테이블용)
+  @Entity
+  @Getter
+  @NoArgsConstructor
+  public class Member {
+      @Id
+      private String username;
+      private String password; // 암호화된 상태로 저장
+      private String email;
+      private String role; // "ROLE_USER", "ROLE_ADMIN"
+      private LocalDateTime createDate; // 가입일
+  
+      @Builder // 빌더 패턴을 쓰면 생성이 편리합니다.
+      public Member(String username, String password, String email, String role) {
+          this.username = username;
+          this.password = password;
+          this.email = email;
+          this.role = role;
+          this.createDate = LocalDateTime.now();
+      }
+  }
+  ```
   
 - 성능 저하를 해결하는 "서비스 레이어" 핵심 전략
-  -  루프 조회 금지 (N+1 문제 해결)
+  - 루프 조회 금지 (N+1 문제 해결)
     - 기존: 즐겨찾기 10개를 루프 돌며 10번 쿼리 실행.
     - 개선: WHERE hospital_code IN (:codes) 쿼리로 한 번에 가져오기.
   - 서비스에서 변환(Mapping) 처리

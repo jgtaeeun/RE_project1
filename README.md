@@ -240,17 +240,8 @@ project0819/src/main/java/edu/pnu
     - Loading 상태: 서버 응답을 기다리는 동안 버튼을 비활성화하거나 로딩 스피너를 보여주면 사용자 경험(UX)이 더 좋아집니다.
 
 
-#### 4일차(12/30)
-
-- 로그인
-  - 토큰방식
-  - 백엔드 단독 회원정보 중복확인
-  - oauth로그인 기능 코드
-- CONFIG
-  - 컨트롤러 계층에서 @CrossOrigin(origins = "http://localhost:3000") 대신에 WebMvcConfigurer를 이용해 Config 계층에서 한 번에 설정
-  - 컨트롤러 계층에서 @RequiredArgsConstructor 태그 있을 경우 , private final BoardService boardService와 같이 final 처리로 생성자 생략
-- 병원정보 테이블 공백확인, 정규화
-=====================
+#### 4일차(1/6)
+1. 프론트코드 개선사항
 - 로그인
   - 보안 및 안정성 개선
     - 로그인 중 중복 클릭 방지: 현재는 버튼을 여러 번 누르면 서버에 요청이 동시에 여러 번 날아갑니다. loading 상태를 추가해 요청 중에는 버튼을 비활성화하는 것이 좋습니다.
@@ -316,8 +307,16 @@ project0819/src/main/java/edu/pnu
   - 코드 및 성능 최적화
     - API 호출 병렬화: fetchData 함수 안에서 await checkSession(), await fetch('...mypage'), await fetchFavorites()가 순차적으로 실행되고 있습니다. 세션 확인 후 데이터 로딩은 Promise.all을 사용하여 동시에 처리하면 페이지 로딩 속도가 빨라집니다.
 
-
-
+2. 백엔드 코드 개선사항
+- 로그인
+  - 토큰방식
+  - 백엔드 단독 회원정보 중복확인
+  - oauth로그인 기능 코드
+- CONFIG
+  - 컨트롤러 계층에서 @CrossOrigin(origins = "http://localhost:3000") 대신에 WebMvcConfigurer를 이용해 Config 계층에서 한 번에 설정
+  - 컨트롤러 계층에서 @RequiredArgsConstructor 태그 있을 경우 , private final BoardService boardService와 같이 final 처리로 생성자 생략
+- 병원정보 테이블 공백확인, 정규화
+  
 
   
 ### 2주차 진행상황 기록

@@ -430,8 +430,100 @@ project0819/src/main/java/edu/pnu
     - SQLException 제거: JPA 환경에서는 대부분 RuntimeException 계열의 예외가 발생하므로 메서드마다 throws SQLException을 붙이지 않아도 자동으로 Spring이 예외 변환을 해줍니다. 코드가 훨씬 간결해집니다.
     - 삭제 로직: deleteByBoardId(id) 같은 메서드를 호출할 때, Board와 BoardRe가 Cascade(영속성 전이) 관계라면 boardRepo.delete(board)만 호출해도 댓글까지 한꺼번에 지울 수 있습니다.
 - 큐엔에이
+  - 예외 처리 방식 개선 (Optional 활용)
+    - 현재 qnaRepo.findById(id).get()을 사용하고 있는데, 만약 해당 ID의 데이터가 없으면 NoSuchElementException이 발생합니다.
+    - 개선: Optional의 orElseThrow를 사용하여 명확한 예외를 던지거나, Service 레이어에서 데이터 존재 여부를 안전하게 체크해야 합니다.
+    - 영향: 서버가 예상치 못한 런타임 에러로 중단되는 것을 방지합니다.
+  - 권한 검증 로직의 일관성
+    - Controller에서 member.getRole()을 직접 체크하거나, Service에서 작성자 일치 여부를 체크하는 로직이 섞여 있습니다.
+    - 개선: * 삭제 권한: 현재 코드에서는 member 역할이면 삭제를 막고 있습니다. 보통은 '작성자 본인'이거나 '관리자'인 경우 삭제를 허용하도록 로직을 정교화하는 것이 좋습니다.
+    - 수정 권한: updateQna 시 본인이 아니면 아무런 에러 응답 없이 조용히 넘어갑니다. 실패 시 사용자에게 알림을 줄 수 있도록 예외를 던지는 것이 좋습니다.
+  - 계층 간 데이터 전달 (DTO 도입)
+    - 현재 Entity(Qna, QnaRe)를 그대로 컨트롤러에서 받고 응답하고 있습니다.
+    - 개선: QnaRequestDTO, QnaResponseDTO를 만들어 필요한 데이터만 주고받으세요.
+    - 이유: Entity에는 DB 연관 관계(Member 등)가 복잡하게 얽혀 있어, JSON으로 변환할 때 **순환 참조(Infinite Recursion)**가 발생하거나 불필요한 개인정보가 노출될 위험이 있습니다.
+  - 코드 가독성 및 효율성
+    - @Autowired 대신 생성자 주입(@RequiredArgsConstructor 이미 사용 중이므로 활용)을 권장합니다.
+    - SQLException은 보통 JDBC 레벨에서 발생합니다. Spring Data JPA를 사용 중이라면 JPA 예외가 발생하므로, 굳이 모든 메서드에 throws SQLException을 붙일 필요가 없습니다.
+  - 추가 제안 사항 (Architecture)
+    - GlobalExceptionHandler 도입: @RestControllerAdvice를 사용하여 모든 컨트롤러의 try-catch 문을 제거하고 공통으로 예외를 처리하세요. 코드가 훨씬 깨끗해집니다.
+    - Soft Delete 고려: 데이터를 실제로 DB에서 delete 하기보다 is_deleted 같은 컬럼을 두어 관리하는 것이 데이터 복구 측면에서 유리합니다.
+    - Spring Security: 현재 @SessionAttribute를 사용 중인데, 추후 프로젝트 규모가 커지면 Spring Security를 도입하여 권한 처리를 선언적으로(@PreAuthorize) 관리하는 것을 추천합니다.
 - 마이페이지
 - 병원검색
+  - 데이터베이스 접근 효율화 (N+1 문제 해결)
+    - 가장 큰 개선 포인트는 getInformation 메서드 내의 루프(Loop) 호출입니다.
+    - 문제점: for (String code : informationList1) 루프 안에서 informationService.getHospitalListFromLevel(code)를 매번 호출하고 있습니다. 만약 병원이 100개라면 100번의 DB 쿼리가 발생합니다.
+    - 개선: List<String> codes를 한 번에 넘겨서 IN 절을 사용하는 쿼리(findAllByHospitalCodeIn)로 변경하세요.
+    - 효과: 네트워크 오버헤드가 획기적으로 줄어들고 응답 속도가 빨라집니다.
+  - 서비스 레이어의 로직 최적화 (교집합 계산)
+    - 의사(Doctor)와 인력(Person) 필터링 시 현재 for 루프를 돌며 개별 쿼리를 날린 후 자바 코드에서 retainAll로 교집합을 구하고 있습니다.
+    - 문제점: 데이터가 많아질수록 DB 부하가 커지고 자바 메모리 사용량이 늘어납니다.
+    - 개선: 여러 조건을 AND 또는 IN 절로 묶은 하나의 복합 쿼리로 작성하거나, Querydsl을 사용하여 동적 쿼리를 생성하세요.
+    - 특이 로직 처리: "외과" 선택 시 "정형외과"를 제외하는 로직도 DB의 EXCEPT 또는 NOT IN 절을 사용하면 훨씬 깔끔합니다.
+    ```java
+    @Transactional(readOnly = true)
+    public List<HospitalResponseDTO> getHospitalDetails(List<String> codes) {
+        // Repository에 findByHospitalCodeIn(codes) 정의 필요
+        List<Level> levels = levelRepo.findByHospitalCodeIn(codes); 
+        return levels.stream()
+                     .map(HospitalResponseDTO::from)
+                     .collect(Collectors.toList());
+    }
+    ```
+  - 컨트롤러 응답 구조 개선 (DTO 도입)
+    - 컨트롤러에서 Map<String, Object>를 수동으로 만들어서 데이터를 put하고 있습니다.
+    - 문제점: 오타 발생 위험이 크고, API 문서화가 어렵습니다.
+    - 개선: HospitalResponseDTO 클래스를 만드세요. tmpLevel.getInformation()에서 데이터를 추출하는 과정을 DTO의 생성자나 MapStruct 같은 라이브러리에 맡기면 컨트롤러 코드가 5줄 이내로 줄어듭니다.
+    ```java
+    @GetMapping("/list")
+    public ResponseEntity<Map<String, List<HospitalResponseDTO>>> getInformation(...) {
+        
+        // 1. 위치 코드 리스트 확보
+        String finalSido = informationService.getlocation(sido);
+        String finalSigungu = informationService.getlocation2(sigungu);
+        List<String> baseCodes = informationService.getCodeList(finalSido, finalSigungu);
+    
+        // 2. 필터링 (의사, 인력 조건 적용 - 서비스 내부에서 처리 권장)
+        List<String> filteredCodes = informationService.filterHospitalCodes(baseCodes, doctor, person);
+    
+        if (filteredCodes.isEmpty()) return ResponseEntity.notFound().build();
+    
+        // 3. 한 번의 쿼리로 상세 정보 가져오기
+        List<HospitalResponseDTO> hospitalList = informationService.getHospitalDetails(filteredCodes);
+    
+        Map<String, List<HospitalResponseDTO>> response = new HashMap<>();
+        response.put("1", hospitalList);
+        return ResponseEntity.ok(response);
+    }
+    ```
+    ```java
+    @Data
+    @AllArgsConstructor
+    public class HospitalResponseDTO {
+        private Long num;
+        private String level;
+        private String id;
+        private String name;
+        private String address;
+        private String phone;
+        private Double locx;
+        private Double locy;
+        // ... 필요한 필드들
+    
+        public static HospitalResponseDTO from(Level level) {
+            Information info = level.getInformation();
+            return new HospitalResponseDTO(
+                info.getNum(), level.getLevel(), info.getHospitalCode(),
+                info.getHosName(), info.getLocation(), info.getPhonenum(),
+                info.getLocx(), info.getLocy()
+            );
+        }
+    }
+    ```
+  - 기타
+    - Null Safety: List<String> doctor 등이 null일 경우를 대비해 Optional이나 Stream의 빈 처리를 더 견고하게 만드세요.
+    - Transaction Read-Only: 조회만 하는 메서드에는 @Transactional(readOnly = true)를 붙여 성능을 최적화하세요.
 - 로그인
   - 토큰방식
   - 백엔드 단독 회원정보 중복확인

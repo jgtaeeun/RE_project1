@@ -450,6 +450,15 @@ project0819/src/main/java/edu/pnu
     - Soft Delete 고려: 데이터를 실제로 DB에서 delete 하기보다 is_deleted 같은 컬럼을 두어 관리하는 것이 데이터 복구 측면에서 유리합니다.
     - Spring Security: 현재 @SessionAttribute를 사용 중인데, 추후 프로젝트 규모가 커지면 Spring Security를 도입하여 권한 처리를 선언적으로(@PreAuthorize) 관리하는 것을 추천합니다.
 - 마이페이지
+  - N+1 문제 및 루프 내 DB 조회 최적화
+    - 현재 getFavorites 메서드는 즐겨찾기 목록만큼 루프를 돌며 informationService.getHospitalListFromLevel(code)를 호출하고 있습니다. 즐겨찾기가 20개라면 20번의 쿼리가 발생합니다.
+    - 개선: favoriteRepository에서 병원 코드 리스트를 가져온 후, JPA의 IN 절을 사용하여 단 한 번의 쿼리로 병원 정보를 모두 가져와야 합니다.
+  - 서비스 계층의 책임 분리
+    - 현재 컨트롤러가 Level 객체를 직접 조작하여 Map으로 변환하는 로직을 가지고 있습니다.
+    - 개선: 이 변환 로직은 DTO(Data Transfer Object) 내부나 별도의 Mapper 클래스로 이동시켜 컨트롤러를 가볍게 만들어야 합니다.
+  - 즐겨찾기 중복 체크 최적화 (Service)
+    - addFavorite에서 기존 리스트를 모두 가져와 contains로 체크하고 있습니다.
+    - 개선: DB 레벨에서 중복을 체크하거나(existsBy...), 엔티티에 복합 유니크 제약 조건을 걸어 예외 처리를 하는 것이 더 효율적입니다.
 - 병원검색
   - 데이터베이스 접근 효율화 (N+1 문제 해결)
     - 가장 큰 개선 포인트는 getInformation 메서드 내의 루프(Loop) 호출입니다.
@@ -525,7 +534,51 @@ project0819/src/main/java/edu/pnu
     - Null Safety: List<String> doctor 등이 null일 경우를 대비해 Optional이나 Stream의 빈 처리를 더 견고하게 만드세요.
     - Transaction Read-Only: 조회만 하는 메서드에는 @Transactional(readOnly = true)를 붙여 성능을 최적화하세요.
 - 로그인
-  - 토큰방식
+  - 토큰 방식 전환 시 주요 변경점
+    - 인증 정보 획득: @SessionAttribute("user") Member member 대신 @AuthenticationPrincipal (Spring Security 제공) 또는 토큰을 파싱하여 얻은 Principal을 사용합니다.
+    - 보안성: 이제 서버 세션에 의존하지 않으므로, 클라이언트가 HTTP 헤더에 Authorization: Bearer <TOKEN>을 실어 보내야 합니다.
+  - 세션 → 토큰(JWT) 전환 전략
+    - 로그인(signin): 성공 시 session.setAttribute 대신, JWT 토큰을 생성하여 응답 바디(JSON) 또는 HttpOnly 쿠키에 담아 반환해야 합니다.
+    - 로그아웃(signout): 서버 세션을 무효화하는 대신, 클라이언트의 저장소(LocalStorage)에서 토큰을 삭제하거나, 쿠키를 만료시켜야 합니다.
+    - 인증 확인: 이후 모든 요청은 헤더(Authorization: Bearer <token>)를 통해 토큰을 전달받고, 서버는 Filter에서 이를 검증합니다.
+  - 로그아웃 로직의 일관성 및 중복 제거
+    - 현재 로그아웃 코드에서 JSESSIONID 쿠키를 삭제하는 로직이 두 번 반복되고 있습니다. 또한, 응답을 보내기 전에 리다이렉트를 호출하면 ResponseEntity 응답이 제대로 전달되지 않을 수 있습니다.
+    - 개선: 쿠키 삭제 로직을 유틸리티 메서드로 분리하고, 리다이렉트와 JSON 응답 중 하나만 선택하세요. (REST API라면 상태 코드만 주는 것이 관례입니다.)
+      ```java
+      @PostMapping("/signout")
+      public ResponseEntity<Void> signout(HttpServletRequest request, HttpServletResponse response) {
+          // 1. 세션 무효화 (토큰 도입 전 과도기)
+          HttpSession session = request.getSession(false);
+          if (session != null) session.invalidate();
+      
+          // 2. 쿠키 만료 처리 (유틸화)
+          expireCookie(response, "JSESSIONID");
+          expireCookie(response, "googleLoggedIn");
+      
+          // 3. 브라우저 캐시 방지 설정
+          response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+          
+          return ResponseEntity.ok().build();
+      }
+      
+      private void expireCookie(HttpServletResponse response, String name) {
+          Cookie cookie = new Cookie(name, null);
+          cookie.setPath("/");
+          cookie.setMaxAge(0);
+          response.addCookie(cookie);
+      }
+      ```
+  - 비밀번호 비교 로직의 보안 (LoginService)
+    - 현재 authenticate 메서드 내부에 System.out.println으로 비밀번호를 출력하고 있습니다.
+    - 위험: 로그 파일에 사용자의 비밀번호가 평문으로 남을 수 있습니다. 운영 환경에서는 절대 금지 사항입니다.
+    - 개선: 로그를 모두 제거하고 passwordEncoder.matches() 결과만 활용하세요.
+  - 멤버 존재 여부 확인 (Optional 활용)
+    - LoginService에서 member == null 체크를 수동으로 하고 있습니다.
+    - 개선: Repository에서 Optional<Member>를 반환하게 하여 가독성을 높이세요.
+  - 향후 로드맵 제안
+    - Spring Security 설정: SecurityConfig에서 세션 정책을 STATELESS로 변경해야 합니다.
+    - JWT Filter 구현: 모든 요청의 헤더에서 토큰을 추출하고 유효성을 검사하는 OncePerRequestFilter를 만듭니다.
+    - Exception Handling: 로그인 실패 시 단순히 500 에러가 아닌, 401 Unauthorized와 함께 구체적인 에러 메시지({ "message": "Invalid password" })를 반환하는 전역 예외 처리기를 구축하세요.
   - 백엔드 단독 회원정보 중복확인
   - oauth로그인 기능 코드
 - CONFIG

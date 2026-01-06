@@ -315,7 +315,7 @@ project0819/src/main/java/edu/pnu
   - 트랜잭션 관리: @Transactional이 서비스 계층에서 데이터 일관성을 위해 적절히 배치되었는지 확인합니다.
   - 보안 및 인증: 세션/쿠키 처리나 관리자 권한(admin) 체크 로직이 서비스 레이어에서 안전하게 검증되는지 봅니다.
 
-- 공통
+- 공통 -유지보수와 성능 측면에서 개선이 필요
   - DTO 적용 (Entity 노출 방지)
   ```java
   // BoardResponseDto.java
@@ -393,6 +393,63 @@ project0819/src/main/java/edu/pnu
   - 보안: Member 엔티티 안에 들어있는 비밀번호 등이 API 응답에 섞여 나가는 것을 원천 봉쇄합니다.
   - 성능: readOnly = true를 통해 JPA의 스냅샷 관리를 최적화할 수 있습니다.
   - 가독성: updateBoard의 복잡한 if-else가 사라지고 비즈니스 흐름이 명확해집니다.
+
+- 왜 굳이 귀찮게 DTO를 써야 하나요?
+  - 사용자가 100만 명인 서비스를 상상해 보세요. Entity를 그대로 컨트롤러에서 반환하면 다음과 같은 대형 사고가 날 수 있습니다.
+  - 순환 참조 (무한 루프): Qna가 Member를 들고 있고, Member가 Qna 목록을 들고 있으면 JSON 변환 시 서로를 계속 호출하다 서버가 터집니다.
+  - 민감 정보 노출: 사용자의 비밀번호(password) 필드가 Entity에 있는데, 이를 그대로 리턴하면 해커가 좋아합니다.
+  - API 스펙 고정: DB 칼럼 이름을 하나 바꾸면, 그 서비스를 쓰는 모든 앱/웹의 코드를 다 수정해야 합니다. DTO를 쓰면 DB 구조가 바뀌어도 DTO만 유지하면 됩니다.
+- DTO와 Entity를 모두 만들어야 하는 이유
+  - 조회(Read) 할 때는: 성능을 위해 Repository에서 바로 DTO로 뽑아낼 수 있습니다.
+  - 저장/수정(Write) 할 때는: 무조건 Entity로 변환해서 JPA에게 넘겨줘야 합니다.
+  ```java
+    //save
+    // 1. 클라이언트가 보낸 데이터 (DTO)
+    public void registerMember(MemberRequestDTO dto) {
+    
+        // 2. DTO를 Entity로 변환 (엔티티를 새로 만듦)
+        Member member = Member.builder()
+                .username(dto.getUsername())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .role("ROLE_USER")
+                .build();
+    
+        // 3. JPA를 통해 저장
+        memberRepository.save(member);
+    }
+   //update
+  @Transactional
+  public void updateMemberInfo(String username, MemberUpdateDTO dto) {
+      // 1. DB에서 원본 엔티티를 꺼내옴 (영속화)
+      Member member = memberRepository.findById(username)
+              .orElseThrow(() -> new RuntimeException("사용자가 없습니다."));
+  
+      // 2. 엔티티의 값을 DTO에 담긴 값으로 변경
+      member.updateDetails(dto.getNickname(), dto.getEmail());
+  
+      // 3. 끝! (save()를 안 불러도 트랜잭션이 끝날 때 자동 업데이트됨)
+  }
+  ```
+  
+  |구분|DTO (Data Transfer Object)|Entity|
+  |:--:|:--:|:--:|
+  |역할|화면(UI)과 통신할 때 데이터 담는 용도|실제 DB 테이블과 매핑되는 용도|
+  |저장/수정|사용자 입력값을 받아올 때만 사용|실제 DB에 반영할 때 필수 사용|
+  |가공|화면에 맞게 데이터를 깎고 다듬음|DB 제약조건(ID, 날짜 등)을 포함함|
+  
+- 성능 저하를 해결하는 "서비스 레이어" 핵심 전략
+  -  루프 조회 금지 (N+1 문제 해결)
+    - 기존: 즐겨찾기 10개를 루프 돌며 10번 쿼리 실행.
+    - 개선: WHERE hospital_code IN (:codes) 쿼리로 한 번에 가져오기.
+  - 서비스에서 변환(Mapping) 처리
+    - 기존: 컨트롤러에서 Map.put("name", info.getName()) 노가다.
+    - 개선: 서비스에서 Entity를 DTO로 변환하여 깔끔하게 리턴.
+  - 읽기 전용 트랜잭션
+    - 개선: 조회 메서드에 @Transactional(readOnly = true)를 붙이세요. JPA가 변경 감지(Dirty Checking)를 안 해도 된다고 판단하여 메모리를 덜 씁니다.
+- 토큰(JWT) 방식으로 바꿀 때의 핵심 코드 변화
+  - 세션 기반에서 토큰 기반으로 가면, MemberRepository를 사용하는 방식도 바뀝니다.
+  - 세션: session.getAttribute("user")로 이미 가져온 정보를 씀.
+  - 토큰: 매 요청마다 헤더의 토큰을 읽어 memberRepository.findByUsername(id)로 DB를 확인하거나, 토큰 안에 정보를 담아 둡니다.
 - 게시판
   - Optional 안전하게 처리하기 (.get() 사용 지양)
     - 현재 서비스 코드에서 boardRepo.findById(id).get()을 사용하고 계신데, 만약 데이터베이스에 해당 ID가 없으면 NoSuchElementException이 발생하며 서버가 500 에러를 뱉게 됩니다.

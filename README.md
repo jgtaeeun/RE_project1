@@ -241,16 +241,38 @@ project0819/src/main/java/edu/pnu
 
 
 #### 4일차(12/30)
-- 프론트코드 읽기
-  - 카드, 병원정보, MyPage- 카카오맵연동,찜하기 
-  - health, News -  건강백과사전 api
-  - Community -검색기능,페이지기능,날짜내림차순 정렬
-  - QNA - 미리보기기능
 
-
-- 백엔드코드 읽기(api호출 + 병원등급정보 level어디서 쓰지?)
-
-
+- 로그인
+  - 토큰방식
+  - 백엔드 단독 회원정보 중복확인
+  - oauth로그인 기능 코드
+- CONFIG
+  - 컨트롤러 계층에서 @CrossOrigin(origins = "http://localhost:3000") 대신에 WebMvcConfigurer를 이용해 Config 계층에서 한 번에 설정
+  - 컨트롤러 계층에서 @RequiredArgsConstructor 태그 있을 경우 , private final BoardService boardService와 같이 final 처리로 생성자 생략
+- 병원정보 테이블 공백확인, 정규화
+=====================
+- 로그인
+  - 세션방식을 토큰방식으로
+  - 로그인유무
+  - oauth로그인 기능 코드
+  - 유효성검사조건(비밀번호국룰)
+  - 비동기에러상태동기화
+  - 로딩상태
+- 카드정보
+  - 기능적 완성도 (Stability)
+    - 데이터 예외 처리 (Optional Chaining): CardDetail에서 cardDetails.specialistInfo.split(' ')을 사용 중인데, 만약 서버에서 데이터가 비어있거나(null) 형식이 다르면 화면 전체가 하얗게 변하며 멈출 수 있습니다.
+    - 개선: cardDetails.specialistInfo?.split(' ') || [] 처럼 안전장치를 추가하세요.
+  - 사용자 경험 (UX/UI)
+    - 검색 결과 "0건"일 때의 피드백: List.js에서 결과가 없을 때 단순히 "검색 결과가 없습니다"만 보여주기보다, **"조건을 변경해서 다시 검색해보세요"**라는 문구와 함께 [다시 검색하기] 버튼을 배치하면 사용자가 이탈하지 않습니다.
+    - 로딩 스피너 (Loading Spinner): API 요청 중에는 Loading... 글자 대신 회전하는 아이콘(Spinner)이나 데이터 모양의 틀(Skeleton)을 보여주면 앱이 훨씬 전문적으로 보입니다.
+    - 상세 페이지 "뒤로가기": CardDetail에 목록으로 돌아가는 버튼이 없습니다. 브라우저 뒤로가기를 쓸 수도 있지만, 화면 상단에 < 목록으로 돌아가기 버튼을 배치하는 것이 친절합니다.
+  - 코드 구조 및 성능 (Engineering)
+    - URL 인코딩 관리: List.js에서 쿼리 파라미터를 만들 때 encodeURIComponent를 직접 쓰고 계신데, URLSearchParams 객체를 활용하면 한글 인코딩을 자동으로 안전하게 처리해 줍니다.
+    - 컴포넌트 분리: CardDetail.js 내부의 지도 로직이 상당히 깁니다. 나중에 다른 곳에서도 지도를 쓸 수 있으니 KakaoMap.js 같은 별도 컴포넌트로 분리하면 코드가 훨씬 읽기 쉬워집니다.
+    - 중복 Fetch 줄이기: CardDetail에서 fetchCardDetails와 fetchFavorites가 각각 돌고 있습니다. 만약 백엔드 수정이 가능하다면, 병원 상세 정보를 가져올 때 현재 사용자의 찜 여부까지 한 번에 담아서 내려주는 것이 효율적입니다.
+- 건강백과사전
+  - 이미지추가
+  - 특정 단어를 찾는 검색 기능
 
 
 
